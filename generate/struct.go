@@ -12,6 +12,7 @@ type structTemplateModel struct {
 	GoName      string
 	Description template.HTML
 	Fields      []structTemplateField
+	AddTypeName bool
 }
 
 type structTemplateField struct {
@@ -27,6 +28,7 @@ func newStructTemplateModel(t graphql.Type) structTemplateModel {
 	stm := structTemplateModel{
 		Name:        t.Name,
 		GoName:      makeExportedName(t.Name),
+		AddTypeName: !t.IsInputObject(),
 		Description: template.HTML(addComments(t.Description, "")),
 	}
 
@@ -37,7 +39,7 @@ func newStructTemplateModel(t graphql.Type) structTemplateModel {
 			jsonTag    = f.Name
 		)
 
-		if !f.IsNonNull() || f.IsObject() {
+		if !f.IsNonNull() || f.IsObject() || f.IsUnion() {
 			prefix = "*"
 		}
 

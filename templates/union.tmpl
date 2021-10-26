@@ -1,16 +1,40 @@
 
+// {{.GoName}}Type Possible types of a {{.GoName}}
+type {{.GoName}}Type string
+
+const ({{range .PossibleTypes}}
+	// {{$.GoName}}Type{{.GoName}} a type of {{.GoName}}
+	{{$.GoName}}Type{{.GoName}} {{$.GoName}}Type = "{{.GoName}}"{{end}}
+)
+
 // {{.GoName}} {{.Description}}
-type {{.GoName}} struct {{"{"}}{{range .PossibleTypes}}
+type {{.GoName}} struct {{"{"}}
+	Type {{.GoName}}Type `json:"__typename"`
+{{range .PossibleTypes}}
 	// {{.GoName}} A possible type of {{.Name}}
 	{{.GoName}} *{{.GoName}} `json:"{{.Name}}"`{{end}}
 }
 
 // UnmarshalJSON custom unmarshal function for {{.Name}} union type
-func ({{.FirstChar}} *{{.GoName}}) UnmarshalJSON(data []byte) error {{"{"}}{{range .PossibleTypes}}
-	if err := json.Unmarshal(data, &{{$.FirstChar}}.{{.GoName}}); err != nil {
+func ({{.FirstChar}} *{{.GoName}}) UnmarshalJSON(data []byte) error {
+	temp := struct {
+		Type {{.GoName}}Type `json:"__typename"`
+	}{}
+
+	if err := json.Unmarshal(data, &temp); err != nil {
 		return err
 	}
-	{{end}}
+	{{.FirstChar}}.Type = temp.Type
+
+	switch ({{.FirstChar}}.Type) {{"{"}}{{range .PossibleTypes}}
+	case {{$.GoName}}Type{{.GoName}}:
+		if err := json.Unmarshal(data, &{{$.FirstChar}}.{{.GoName}}); err != nil {
+			return err
+		}{{end}}
+	default:
+		return fmt.Errorf("invalid type for {{.GoName}} '%s'; make sure '__typename' is in your query", {{.FirstChar}}.Type)
+	}
+
 	return nil
 }
 
@@ -24,5 +48,5 @@ func ({{.FirstChar}} {{.GoName}}) MarshalJSON() ([]byte, error) {{"{"}}{{range .
 		return bytes, nil
 	}
 	{{end}}
-	return nil, errors.New("could not marshal struct {{.GoName}}: no value assigned")
+	return nil, nil
 }
