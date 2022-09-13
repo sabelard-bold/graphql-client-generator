@@ -1,6 +1,6 @@
 # GraphQL Client Generator
 
-* Use the query in `schemaQuery.txt` to retrieve the GraphQL schema of your API and save it as `schema.json`
-* Run `go run main.go` to output the golang models for your API
+* Run `go run main.go --endpoint <target graphql api endpoint> --header <header name>:<header value>` to output the golang models for your API
+  * Optionally use `--generate` flag to generate only `types` or `functions`
 
 More to come! 🚀

@@ -1,0 +1,12 @@
+
+// {{.GoName}} {{.Description}}
+type {{.GoName}} struct {{"{"}}{{if .AddTypeName}}
+	// TypeName the typename of the {{.GoName}} object
+	TypeName *string `json:"__typename"`{{end}}{{range .Fields}}
+	// {{.GoName}} {{.Description}}
+	{{.GoName}} {{.GoTypeDef}} `json:"{{.GoJSONTag}}"{{.GoGraphQLTag}}`{{end}}
+}
+
+func (e {{.GoName}}) Error() string {
+	return e.Message
+}

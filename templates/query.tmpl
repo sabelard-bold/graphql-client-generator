@@ -6,37 +6,27 @@ func (c *Client) {{.Function.Name}}(ctx context.Context, vars *{{.Function.Name}
 	err := c.Query(
 		ctx,
 		fmt.Sprintf(`
-mutation {{.Function.OperationName}}({{range .Function.Args}}{{.GQLParamDef}}{{end}}) {
+query {{.Function.OperationName}}({{range .Function.Args}}{{.GQLParamDef}}{{end}}) {
 	{{.Function.OperationName}} ({{range .Function.Args}}{{.GQLArgumentDef}}{{end}}) {
 		%s
-		userErrors {
-			{{.ErrorFields}}
-		}
 	}
 }`, payloadQuery),
 		vars,
 		&v,
-	)
+	){{if .Function.ReturnDeref}}
 
 	if err != nil {
-		return {{.Function.ReturnDeref}}v.{{.Function.GoName}}, err
+		return {{.Function.ReturnType}}{}, err
 	}
-
-	if len(v.{{.Function.GoName}}.UserErrors) > 0 {
-		var e error
-
-		for _, ue := range v.{{.Function.GoName}}.UserErrors {
-			e = multierror.Append(e, ue)
-		}
-
-		return {{.Function.ReturnType}}{}, e
-	}{{if .Function.ReturnDeref}}
 
 	if v.{{.Function.GoName}} == nil {
-	  return {{.Function.ReturnType}}{}, nil
+	  return {{.Function.ReturnType}}{}, ErrNotFound
 	}
 	
-	return {{.Function.ReturnDeref}}v.{{.Function.GoName}}, nil{{end}}
+	return {{.Function.ReturnDeref}}v.{{.Function.GoName}}, nil{{else}}
+
+	return {{.Function.ReturnDeref}}v.{{.Function.GoName}}, err
+	{{end}}
 }
 
 // {{.Function.Name}}Vars variables for the {{.Function.Name}} function

@@ -16,8 +16,9 @@ import (
 )
 
 var (
-	endpoint string
-	headers  libflag.HTTPHeaders
+	endpoint      string
+	generateInput string
+	headers       libflag.HTTPHeaders
 )
 
 type schemaWrap struct {
@@ -29,6 +30,7 @@ type schemaWrap struct {
 func main() {
 	flag.StringVar(&endpoint, "endpoint", "", "graphql endpoint for introspection query")
 	flag.Var(&headers, "header", "header for introspection query")
+	flag.StringVar(&generateInput, "generate", "all", "items to generate (all,functions,types)")
 	flag.Parse()
 
 	bytes, err := getSchema()
@@ -42,8 +44,19 @@ func main() {
 	if err != nil {
 		panic(fmt.Errorf("unmarshalling json: %w", err))
 	}
+	w.Data.Schema.Init()
 
-	err = generate.Write(os.Stdout, w.Data.Schema)
+	generator := generate.NewGenerator(os.Stdout, w.Data.Schema)
+	switch generateInput {
+	case "all":
+		err = generator.Write()
+	case "functions":
+		err = generator.WriteFunctions()
+	case "types":
+		err = generator.WriteTypes()
+	default:
+		fmt.Println("invalid value for generate flag")
+	}
 
 	if err != nil {
 		panic(fmt.Errorf("generating files: %w", err))

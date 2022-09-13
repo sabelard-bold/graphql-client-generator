@@ -17,6 +17,8 @@ const (
 	unionTemplateName    = "union"
 	enumTemplateName     = "enum"
 	mutationTemplateName = "mutation"
+	queryTemplateName    = "query"
+	errorTemplateName    = "error"
 )
 
 var (
@@ -25,34 +27,53 @@ var (
 		unionTemplateName,
 		enumTemplateName,
 		mutationTemplateName,
+		queryTemplateName,
+		errorTemplateName,
 	}
 	tpls = map[string]*template.Template{}
 )
 
+type Generator struct {
+	writer io.Writer
+	schema graphql.Schema
+}
+
+func NewGenerator(writer io.Writer, schema graphql.Schema) *Generator {
+	return &Generator{
+		writer: writer,
+		schema: schema,
+	}
+}
+
 // Write writes the generated code to the io writer
-func Write(wr io.Writer, s graphql.Schema) error {
+func (g *Generator) Write() error {
+	err := g.WriteTypes()
+	if err != nil {
+		return err
+	}
+
+	err = g.WriteFunctions()
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (g *Generator) WriteTypes() error {
 	err := loadTemplates()
 	if err != nil {
 		return fmt.Errorf("failed to load templates: %s", err)
 	}
 
-	for _, t := range s.Types {
-		if t.Name == s.MutationType.Name {
-			// for _, f := range t.Fields {
-			// 	mtm := newMutationTemplateModel(s, f)
-			// 	err = tpls[mutationTemplateName].Execute(wr, mtm)
-
-			// 	if err != nil {
-			// 		return fmt.Errorf("could not generate from mutation=%s: %s", f.Name, err)
-			// 	}
-			// }
-		} else if strings.Index(t.Name, "__") != 0 {
+	for _, t := range g.schema.Types {
+		if strings.Index(t.Name, "__") != 0 {
 			var err error
 			switch t.Kind {
 			case graphql.TypeKindScalar:
 			case graphql.TypeKindEnum:
 				etm := newEnumTemplateModel(t)
-				err = tpls[enumTemplateName].Execute(wr, etm)
+				err = tpls[enumTemplateName].Execute(g.writer, etm)
 			case graphql.TypeKindInputObject:
 				t.Fields = t.InputFields
 				fallthrough
@@ -60,10 +81,15 @@ func Write(wr io.Writer, s graphql.Schema) error {
 				fallthrough
 			case graphql.TypeKindObject:
 				stm := newStructTemplateModel(t)
-				err = tpls[structTemplateName].Execute(wr, stm)
+				template := structTemplateName
+				if g.schema.IsError(t.Name) {
+					template = errorTemplateName
+				}
+
+				err = tpls[template].Execute(g.writer, stm)
 			case graphql.TypeKindUnion:
 				utm := newUnionTemplateModel(t)
-				err = tpls[unionTemplateName].Execute(wr, utm)
+				err = tpls[unionTemplateName].Execute(g.writer, utm)
 			default:
 				panic(fmt.Sprintf("Unkown type kind of %s\n%+v", t.Kind, t))
 			}
@@ -71,6 +97,55 @@ func Write(wr io.Writer, s graphql.Schema) error {
 			if err != nil {
 				return fmt.Errorf("could not generate from type=%s: %s", t.Name, err)
 			}
+		}
+	}
+
+	return nil
+}
+
+func (g *Generator) WriteFunctions() error {
+	err := loadTemplates()
+	if err != nil {
+		return fmt.Errorf("failed to load templates: %s", err)
+	}
+
+	for _, f := range g.schema.Mutation.Type.Fields {
+		ret, ok := g.schema.Type(f.TypeName())
+		if !ok {
+			return fmt.Errorf("could not find type for mutation field: %s", f.TypeName())
+		}
+
+		var ue graphql.Type
+		for _, field := range ret.Fields {
+			if field.Name == "userErrors" {
+				ue, ok = g.schema.Type(field.TypeName())
+				if !ok {
+					return fmt.Errorf("could not find type for mutation user error: %s", field.TypeName())
+				}
+
+				break
+			}
+		}
+
+		mtm := newMutationTemplateModel(f, ret, g.schema.Mutation.Type, ue)
+		err = tpls[mutationTemplateName].Execute(g.writer, mtm)
+
+		if err != nil {
+			return fmt.Errorf("could not generate from mutation=%s: %s", f.Name, err)
+		}
+	}
+
+	for _, f := range g.schema.Query.Type.Fields {
+		ret, ok := g.schema.Type(f.TypeName())
+		if !ok {
+			return fmt.Errorf("could not find type for query field: %s", f.TypeName())
+		}
+
+		qtm := newQueryTemplateModel(f, ret, g.schema.Query.Type)
+		err = tpls[queryTemplateName].Execute(g.writer, qtm)
+
+		if err != nil {
+			return fmt.Errorf("could not generate from query=%s: %s", f.Name, err)
 		}
 	}
 
@@ -125,7 +200,7 @@ var gqlGoScalarMap = map[string]string{
 	"ID":              "string",
 	"DateTime":        "time.Time",
 	"Date":            "string",
-	"UnsignedInt64":   "int",
+	"UnsignedInt64":   "string",
 	"HTML":            "string",
 	"Money":           "float64",
 	"Float":           "float64",
@@ -133,7 +208,6 @@ var gqlGoScalarMap = map[string]string{
 	"FormattedString": "string",
 	"JSON":            "string",
 	"UtcOffset":       "string",
-	"CurrencyCode":    "string",
 	"Boolean":         "bool",
 	"Decimal":         "string",
 	"StorefrontID":    "string",
