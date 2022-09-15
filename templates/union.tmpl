@@ -1,15 +1,15 @@
 
-// {{.GoName}}Type Possible types of a {{.GoName}}
-type {{.GoName}}Type string
+// {{.GoName}}UnionType Possible types of a {{.GoName}}
+type {{.GoName}}UnionType string
 
 const ({{range .PossibleTypes}}
 	// {{$.GoName}}Type{{.GoName}} a type of {{.GoName}}
-	{{$.GoName}}Type{{.GoName}} {{$.GoName}}Type = "{{.GoName}}"{{end}}
+	{{$.GoName}}Type{{.GoName}} {{$.GoName}}UnionType = "{{.GoName}}"{{end}}
 )
 
 // {{.GoName}} {{.Description}}
 type {{.GoName}} struct {{"{"}}
-	Type {{.GoName}}Type `json:"__typename"`
+	Type {{.GoName}}UnionType `json:"__typename"`
 {{range .PossibleTypes}}
 	// {{.GoName}} A possible type of {{.Name}}
 	{{.GoName}} *{{.GoName}} `json:"{{.Name}}"`{{end}}
@@ -18,7 +18,7 @@ type {{.GoName}} struct {{"{"}}
 // UnmarshalJSON custom unmarshal function for {{.Name}} union type
 func ({{.FirstChar}} *{{.GoName}}) UnmarshalJSON(data []byte) error {
 	temp := struct {
-		Type {{.GoName}}Type `json:"__typename"`
+		Type {{.GoName}}UnionType `json:"__typename"`
 	}{}
 
 	if err := json.Unmarshal(data, &temp); err != nil {

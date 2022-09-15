@@ -37,16 +37,16 @@ func (s *Schema) Init() {
 
 		if t.Name == s.Mutation.Name {
 			s.Mutation.Type = t
-
-			for _, field := range t.Fields {
-				if field.Name == "userErrors" {
-					s.errorsLookup[field.TypeName()] = true
-				}
-			}
 		}
 
 		if t.Name == s.Query.Name {
 			s.Query.Type = t
+		}
+
+		for _, field := range t.Fields {
+			if field.Name == "userErrors" {
+				s.errorsLookup[field.TypeName()] = true
+			}
 		}
 	}
 }
