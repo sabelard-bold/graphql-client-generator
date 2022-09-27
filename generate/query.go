@@ -106,15 +106,20 @@ type queryTemplateModel struct {
 	Function functionTemplateModel
 }
 
-func newQueryTemplateModel(query graphql.Field, ret graphql.Type, parent graphql.Type) queryTemplateModel {
+func newQueryTemplateModel(schema graphql.Schema, query graphql.Field) (queryTemplateModel, error) {
+	ret, ok := schema.Type(query.TypeName())
+	if !ok {
+		return queryTemplateModel{}, fmt.Errorf("could not find type for query field: %s", query.TypeName())
+	}
+
 	qt := queryTemplateModel{
 		Function: newFunctionTemplateModel(
 			fmt.Sprintf("Query%s", makeExportedName(query.Name)),
-			parent,
+			schema.Query.Type,
 			query,
 			ret,
 		),
 	}
 
-	return qt
+	return qt, nil
 }

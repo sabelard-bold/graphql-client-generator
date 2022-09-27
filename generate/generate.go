@@ -110,42 +110,26 @@ func (g *Generator) WriteFunctions() error {
 	}
 
 	for _, f := range g.schema.Mutation.Type.Fields {
-		ret, ok := g.schema.Type(f.TypeName())
-		if !ok {
-			return fmt.Errorf("could not find type for mutation field: %s", f.TypeName())
+		mtm, errM := newMutationTemplateModel(g.schema, f)
+		if errM != nil {
+			return errM
 		}
 
-		var ue graphql.Type
-		for _, field := range ret.Fields {
-			if field.Name == "userErrors" {
-				ue, ok = g.schema.Type(field.TypeName())
-				if !ok {
-					return fmt.Errorf("could not find type for mutation user error: %s", field.TypeName())
-				}
-
-				break
-			}
-		}
-
-		mtm := newMutationTemplateModel(f, ret, g.schema.Mutation.Type, ue)
-		err = tpls[mutationTemplateName].Execute(g.writer, mtm)
-
-		if err != nil {
-			return fmt.Errorf("could not generate from mutation=%s: %s", f.Name, err)
+		errM = tpls[mutationTemplateName].Execute(g.writer, mtm)
+		if errM != nil {
+			return fmt.Errorf("could not generate from mutation=%s: %s", f.Name, errM)
 		}
 	}
 
 	for _, f := range g.schema.Query.Type.Fields {
-		ret, ok := g.schema.Type(f.TypeName())
-		if !ok {
-			return fmt.Errorf("could not find type for query field: %s", f.TypeName())
+		qtm, errQ := newQueryTemplateModel(g.schema, f)
+		if errQ != nil {
+			return errQ
 		}
 
-		qtm := newQueryTemplateModel(f, ret, g.schema.Query.Type)
-		err = tpls[queryTemplateName].Execute(g.writer, qtm)
-
-		if err != nil {
-			return fmt.Errorf("could not generate from query=%s: %s", f.Name, err)
+		errQ = tpls[queryTemplateName].Execute(g.writer, qtm)
+		if errQ != nil {
+			return fmt.Errorf("could not generate from query=%s: %s", f.Name, errQ)
 		}
 	}
 

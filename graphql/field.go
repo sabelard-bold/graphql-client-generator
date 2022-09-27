@@ -1,5 +1,7 @@
 package graphql
 
+import "strings"
+
 // Field a field on a GraphQL type
 type Field struct {
 	Name              string    `json:"name"`
@@ -8,6 +10,10 @@ type Field struct {
 	IsDeprecated      bool      `json:"isDeprecated"`
 	DeprecationReason string    `json:"deprecationReason"`
 	Args              []Arg     `json:"args"`
+}
+
+func (f *Field) IsError() bool {
+	return f.Name == "userErrors" || strings.Contains(f.Name, "UserErrors")
 }
 
 // TypeName name of the field's type

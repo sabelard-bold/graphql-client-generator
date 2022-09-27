@@ -1,3 +1,6 @@
 .DS_Store
 .vscode
+.idea
+functions.go
+models.go
 schema.json
