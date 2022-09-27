@@ -8,25 +8,42 @@ import (
 )
 
 type mutationTemplateModel struct {
-	Function    functionTemplateModel
-	ErrorFields string
+	Function         functionTemplateModel
+	GoErrorFieldName string
+	ErrorFields      string
 }
 
-func newMutationTemplateModel(mutation graphql.Field, ret graphql.Type, parent graphql.Type, userErrors graphql.Type) mutationTemplateModel {
+func newMutationTemplateModel(schema graphql.Schema, mutation graphql.Field) (mutationTemplateModel, error) {
+	ret, ok := schema.Type(mutation.TypeName())
+	if !ok {
+		return mutationTemplateModel{}, fmt.Errorf("could not find type for mutation field: %s", mutation.TypeName())
+	}
+
 	mt := mutationTemplateModel{
 		Function: newFunctionTemplateModel(
 			fmt.Sprintf("%sMutation", makeExportedName(mutation.Name)),
-			parent,
+			schema.Mutation.Type,
 			mutation,
 			ret,
 		),
 	}
 
-	parts := []string{}
-	for _, field := range userErrors.Fields {
-		parts = append(parts, field.Name)
-	}
-	mt.ErrorFields = strings.Join(parts, " ")
+	errField := ret.ErrorField()
+	if errField != nil {
+		mt.GoErrorFieldName = makeExportedName(errField.Name)
 
-	return mt
+		t, ok := schema.Type(errField.TypeName())
+		if !ok {
+			return mutationTemplateModel{}, fmt.Errorf("could not find type for mutation user error: %s", errField.TypeName())
+		}
+
+		var errorParts []string
+		for _, field := range t.Fields {
+			errorParts = append(errorParts, field.Name)
+		}
+
+		mt.ErrorFields = strings.Join(errorParts, " ")
+	}
+
+	return mt, nil
 }

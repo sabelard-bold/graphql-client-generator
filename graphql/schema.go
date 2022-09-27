@@ -10,8 +10,7 @@ type Schema struct {
 		Type Type
 		Name string `json:"name"`
 	} `json:"mutationType"`
-	Types []Type `json:"types"`
-
+	Types        []Type `json:"types"`
 	typeLookup   map[string]Type
 	errorsLookup map[string]bool
 }
@@ -44,7 +43,7 @@ func (s *Schema) Init() {
 		}
 
 		for _, field := range t.Fields {
-			if field.Name == "userErrors" {
+			if field.IsError() {
 				s.errorsLookup[field.TypeName()] = true
 			}
 		}

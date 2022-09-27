@@ -22,10 +22,10 @@ mutation {{.Function.OperationName}}({{range .Function.Args}}{{.GQLParamDef}}{{e
 		return {{.Function.ReturnDeref}}v.{{.Function.GoName}}, err
 	}
 
-	if len(v.{{.Function.GoName}}.UserErrors) > 0 {
+	if len(v.{{.Function.GoName}}.{{.GoErrorFieldName}}) > 0 {
 		var e error
 
-		for _, ue := range v.{{.Function.GoName}}.UserErrors {
+		for _, ue := range v.{{.Function.GoName}}.{{.GoErrorFieldName}} {
 			e = multierror.Append(e, ue)
 		}
 

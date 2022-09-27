@@ -33,3 +33,14 @@ const (
 func (t *Type) IsInputObject() bool {
 	return t.Kind == TypeKindInputObject
 }
+
+// ErrorField return the error field if there is one
+func (t *Type) ErrorField() *Field {
+	for _, field := range t.Fields {
+		if field.IsError() {
+			return &field
+		}
+	}
+
+	return nil
+}
