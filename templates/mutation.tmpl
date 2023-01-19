@@ -19,7 +19,7 @@ mutation {{.Function.OperationName}}({{range .Function.Args}}{{.GQLParamDef}}{{e
 	)
 
 	if err != nil {
-		return {{.Function.ReturnDeref}}v.{{.Function.GoName}}, err
+		return {{.Function.ReturnPrefix}}{{.Function.ReturnType}}{}, err
 	}
 
 	if len(v.{{.Function.GoName}}.{{.GoErrorFieldName}}) > 0 {
